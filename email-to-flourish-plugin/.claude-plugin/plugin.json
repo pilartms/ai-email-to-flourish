@@ -1,0 +1,6 @@
+{
+  "name": "email-to-flourish",
+  "version": "1.0.0",
+  "description": "Convert email thread PDFs into Flourish Text Annotator HTML",
+  "author": { "name": "Pilar Tomas" }
+}

@@ -2,6 +2,10 @@
 
 Convert email thread PDFs into HTML formatted for the [Flourish Text Annotator](https://flourish.studio) template — either via a **web app** (no install needed) or a **Claude Code skill** for terminal users.
 
+## The problem
+
+Journalists who want to recreate and publish email threads using Flourish's Text Annotator currently have to format the HTML by hand, a time-consuming, error-prone process requiring knowledge of inline CSS, redaction bar markup, and Flourish's rendering quirks. This AI-assisted workflow (via Claude Code) removes that barrier entirely.
+
 ---
 
 ## Web app

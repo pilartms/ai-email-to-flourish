@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Email → Flourish Converter</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: #f4f4f0;
+      color: #1a1a1a;
+    }
+
+    body { display: flex; flex-direction: column; }
+
+    /* ── Header ── */
+    header {
+      background: #1a1a1a;
+      color: #fff;
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    header .logo {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.45;
+    }
+    header .sep {
+      width: 1px;
+      height: 16px;
+      background: rgba(255,255,255,0.2);
+    }
+    header h1 {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    /* ── Two-column workspace ── */
+    .workspace {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+
+    /* ── Left panel ── */
+    .left-panel {
+      width: 360px;
+      flex-shrink: 0;
+      border-right: 1px solid #ddd;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .left-inner {
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      flex: 1;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #888;
+    }
+
+    /* ── Drop zone ── */
+    .dropzone {
+      border: 2px dashed #ccc;
+      border-radius: 10px;
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      background: #fafaf8;
+    }
+    .dropzone:hover, .dropzone.drag-over {
+      border-color: #1a1a1a;
+      background: #f0f0ec;
+    }
+    .dropzone .dz-icon { font-size: 32px; margin-bottom: 10px; display: block; line-height: 1; }
+    .dropzone .dz-label { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .dropzone .dz-sub { font-size: 12px; color: #999; }
+    .dropzone input[type="file"] { display: none; }
+
+    /* ── File pill ── */
+    .file-pill {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: #f0f0ec;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px 13px;
+      font-size: 13px;
+    }
+    .file-pill .fp-icon { font-size: 18px; line-height: 1; }
+    .file-pill .fp-name { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-pill .fp-remove {
+      background: none; border: none; cursor: pointer;
+      color: #999; font-size: 16px; line-height: 1; padding: 0 2px;
+    }
+    .file-pill .fp-remove:hover { color: #1a1a1a; }
+    .file-pill.visible { display: flex; }
+
+    /* ── Convert button ── */
+    .convert-btn {
+      background: #1a1a1a;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 13px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.15s, opacity 0.15s;
+      letter-spacing: -0.01em;
+    }
+    .convert-btn:hover { background: #333; }
+    .convert-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ── Progress ── */
+    .progress { display: none; flex-direction: column; gap: 10px; }
+    .progress.visible { display: flex; }
+    .prog-header { display: flex; align-items: center; gap: 10px; }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid #ddd;
+      border-top-color: #1a1a1a;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .prog-label { font-size: 13px; color: #555; }
+    .prog-steps { list-style: none; display: flex; flex-direction: column; gap: 6px; padding-left: 4px; }
+    .prog-steps li {
+      font-size: 12px; color: #bbb;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .prog-steps li.done { color: #1a1a1a; }
+    .prog-steps li.active { color: #555; }
+    .step-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #ddd; flex-shrink: 0;
+    }
+    .prog-steps li.done .step-dot { background: #1a1a1a; }
+    .prog-steps li.active .step-dot { background: #777; }
+
+    /* ── Post-conversion actions ── */
+    .actions { display: none; flex-direction: column; gap: 10px; }
+    .actions.visible { display: flex; }
+    .success-badge {
+      display: flex; align-items: center; gap: 8px;
+      background: #f0faf4; border: 1px solid #b6e4c6;
+      border-radius: 8px; padding: 11px 13px;
+      font-size: 13px;
+    }
+    .success-badge .badge-icon { font-size: 16px; }
+    .download-btn {
+      background: #fff; color: #1a1a1a;
+      border: 1.5px solid #1a1a1a; border-radius: 8px;
+      padding: 11px; font-size: 13px; font-weight: 600;
+      cursor: pointer; width: 100%;
+      transition: background 0.15s;
+    }
+    .download-btn:hover { background: #f4f4f0; }
+    .new-btn {
+      background: none; border: none;
+      color: #999; font-size: 12px;
+      cursor: pointer; text-decoration: underline;
+      text-align: center; padding: 2px;
+    }
+    .new-btn:hover { color: #1a1a1a; }
+
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1px solid #eee; margin: 4px 0; }
+
+    /* ── Info items ── */
+    .info-list { display: flex; flex-direction: column; gap: 10px; }
+    .info-row { display: flex; gap: 10px; align-items: flex-start; }
+    .info-row .i-icon { font-size: 15px; line-height: 1; padding-top: 1px; flex-shrink: 0; }
+    .info-row .i-body { }
+    .info-row .i-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+    .info-row .i-desc { font-size: 11px; color: #888; line-height: 1.5; }
+
+    /* ── Right panel ── */
+    .right-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background: #f4f4f0;
+    }
+
+    /* ── Preview toolbar ── */
+    .preview-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 0 20px;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+      flex-shrink: 0;
+      height: 44px;
+    }
+    .tab-btn {
+      background: none; border: none; cursor: pointer;
+      font-size: 13px; font-weight: 500; color: #999;
+      padding: 0 14px; height: 100%;
+      border-bottom: 2px solid transparent;
+      transition: color 0.1s, border-color 0.1s;
+    }
+    .tab-btn.active { color: #1a1a1a; border-bottom-color: #1a1a1a; }
+    .tab-btn:hover:not(.active) { color: #555; }
+    .toolbar-spacer { flex: 1; }
+    .copy-btn {
+      background: #1a1a1a; color: #fff;
+      border: none; border-radius: 7px;
+      padding: 8px 18px; font-size: 13px; font-weight: 600;
+      cursor: pointer; letter-spacing: -0.01em;
+      transition: background 0.15s;
+    }
+    .copy-btn:hover { background: #333; }
+    .copy-btn.copied { background: #1e6640; }
+
+    /* ── Preview area ── */
+    .preview-area {
+      flex: 1;
+      position: relative;
+      min-height: 0;
+    }
+
+    /* Empty state */
+    .empty-state {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px; color: #bbb;
+    }
+    .empty-state .es-icon { font-size: 40px; opacity: 0.5; }
+    .empty-state .es-text { font-size: 14px; }
+    .empty-state .es-sub { font-size: 12px; color: #ccc; }
+    .empty-state.hidden { display: none; }
+
+    /* Rendered iframe */
+    .preview-iframe {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      border: none;
+      background: #fff;
+      display: none;
+    }
+    .preview-iframe.visible { display: block; }
+
+    /* Source code view */
+    .source-view {
+      position: absolute; inset: 0;
+      overflow: auto;
+      background: #1e1e2e;
+      padding: 20px 24px;
+      display: none;
+    }
+    .source-view.visible { display: block; }
+    .source-view pre {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.65;
+      color: #cdd6f4;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* ── Footer ── */
+    footer {
+      background: #1a1a1a;
+      color: rgba(255,255,255,0.35);
+      text-align: center;
+      font-size: 11px;
+      padding: 12px 24px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">Flourish Tools</span>
+  <span class="sep"></span>
+  <h1>Email Thread Converter</h1>
+</header>
+
+<div class="workspace">
+
+  <!-- ── Left panel ── -->
+  <div class="left-panel">
+    <div class="left-inner">
+
+      <span class="panel-title">Upload</span>
+
+      <!-- Drop zone -->
+      <label class="dropzone" id="dropzone" for="file-input">
+        <span class="dz-icon">📄</span>
+        <div class="dz-label">Drop your PDF here</div>
+        <div class="dz-sub">or click to browse · PDF only</div>
+        <input type="file" id="file-input" accept=".pdf" />
+      </label>
+
+      <!-- File pill -->
+      <div class="file-pill" id="file-pill">
+        <span class="fp-icon">📎</span>
+        <span class="fp-name" id="fp-name">filename.pdf</span>
+        <button class="fp-remove" id="fp-remove" title="Remove">✕</button>
+      </div>
+
+      <!-- Convert -->
+      <button class="convert-btn" id="convert-btn" disabled>Convert to Flourish HTML</button>
+
+      <!-- Progress -->
+      <div class="progress" id="progress">
+        <div class="prog-header">
+          <div class="spinner"></div>
+          <span class="prog-label">Converting…</span>
+        </div>
+        <ul class="prog-steps">
+          <li id="s1"><span class="step-dot"></span>Reading PDF</li>
+          <li id="s2"><span class="step-dot"></span>Applying formatting rules</li>
+          <li id="s3"><span class="step-dot"></span>Generating HTML</li>
+        </ul>
+      </div>
+
+      <!-- Post-conversion actions -->
+      <div class="actions" id="actions">
+        <div class="success-badge">
+          <span class="badge-icon">✅</span>
+          <span>Conversion complete</span>
+        </div>
+        <button class="download-btn" id="download-btn">⬇ Download HTML</button>
+        <button class="new-btn" id="new-btn">Convert another file</button>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- Info -->
+      <div class="info-list">
+        <div class="info-row">
+          <span class="i-icon">🔒</span>
+          <div class="i-body">
+            <div class="i-title">Private by default</div>
+            <div class="i-desc">Your PDF is processed in memory and never stored.</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="i-icon">⚡</span>
+          <div class="i-body">
+            <div class="i-title">~20 seconds</div>
+            <div class="i-desc">Typical time for a 3–5 email thread.</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="i-icon">📋</span>
+          <div class="i-body">
+            <div class="i-title">Paste into Flourish</div>
+            <div class="i-desc">Switch to "Source" tab, copy, paste into Flourish's Text Annotator.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Right panel ── -->
+  <div class="right-panel">
+
+    <!-- Toolbar -->
+    <div class="preview-toolbar">
+      <button class="tab-btn active" id="tab-preview">Preview</button>
+      <button class="tab-btn" id="tab-source">Source</button>
+      <div class="toolbar-spacer"></div>
+      <button class="copy-btn" id="copy-btn">Copy HTML</button>
+    </div>
+
+    <!-- Preview area -->
+    <div class="preview-area">
+
+      <!-- Empty state -->
+      <div class="empty-state" id="empty-state">
+        <span class="es-icon">←</span>
+        <span class="es-text">Upload a PDF to see the output here</span>
+        <span class="es-sub">The rendered Flourish HTML will appear in this panel</span>
+      </div>
+
+      <!-- Rendered iframe -->
+      <iframe class="preview-iframe" id="preview-iframe" sandbox="allow-same-origin"></iframe>
+
+      <!-- Source code -->
+      <div class="source-view" id="source-view">
+        <pre id="source-pre"></pre>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Created by Pilar Tomás · Powered by Claude
+</footer>
+
+<script>
+  // ── Sample output (real conversion of EFTA01793743.pdf) ──
+  const SAMPLE_HTML = `<div style="
+  background:#ffffff;
+  width:calc(100% + 32px);
+  margin:0 -16px;
+  padding:16px;
+  box-sizing:border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+">
+
+  <div style="margin-bottom: 8px;">
+    <div style="display:flex; margin:0; padding:0; line-height:1.4; align-items:flex-start;">
+      <div style="font-weight:bold; width:78px; margin:0; padding:0;">From:</div>
+      <div style="margin:0; padding:0; flex:1 1 auto; min-width:0; display:flex; flex-wrap:wrap; align-items:center;">
+        <span>PETER&nbsp;MANDELSON &lt;</span><span style="background:#000;color:#000;padding:2px 6px;display:inline-block;line-height:1;height:1em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span>&gt;</span>
+      </div>
+    </div>
+    <div style="display:flex; margin:0; padding:0; line-height:1.4; align-items:flex-start;">
+      <div style="font-weight:bold; width:78px; margin:0; padding:0;">Sent:</div>
+      <div style="margin:0; padding:0; flex:1 1 auto;">Tuesday, January 18, 2011 3:59 PM</div>
+    </div>
+    <div style="display:flex; margin:0; padding:0; line-height:1.4; align-items:flex-start;">
+      <div style="font-weight:bold; width:78px; margin:0; padding:0;">To:</div>
+      <div style="margin:0; padding:0; flex:1 1 auto;">jeevacation@gmail.com</div>
+    </div>
+    <div style="display:flex; margin:0; padding:0; line-height:1.4; align-items:flex-start;">
+      <div style="font-weight:bold; width:78px; margin:0; padding:0;">Subject:</div>
+      <div style="margin:0; padding:0; flex:1 1 auto;">Fw:</div>
+    </div>
+  </div>
+
+  <br>
+  <div style="margin: 0 0 18px 0;">
+    <p style="margin:0 0 12px 0;">I sent this yesterday as well</p><br><br>
+    Lord Mandelson<br>
+    Chairman, Global Counsel LLP<br>
+    <span style="background:#000;color:#000;padding:2px 6px;display:inline-block;line-height:1;height:1em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><br>
+    <span style="background:#000;color:#000;padding:2px 6px;display:inline-block;line-height:1;height:1em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+  </div>
+
+  <p style="margin:0 0 12px 0;">--- On Mon, 17/1/11, PETER MANDELSON &lt;<span style="background:#000;color:#000;padding:2px 6px;display:inline-block;line-height:1;height:1em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&gt; wrote:</p>
+
+  <div style="margin-bottom: 8px;">
+    <div style="display:flex; margin:0; padding:0; line-height:1.4; align-items:flex-start;">
+      <div style="font-weight:bold; width:78px; margin:0; padding:0;">From:</div>
+      <div style="margin:0; padding:0; flex:1 1 auto; display:flex; flex-wrap:wrap; align-items:center;">
+        <span>PETER&nbsp;MANDELSON &lt;</span><span style="background:#000;color:#000;padding:2px 6px;display:inline-block;line-height:1;height:1em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span>&gt;</span>
+      </div>
+    </div>
+    <div style="display:flex; margin:0; padding:0; line-height:1.4; align-items:flex-start;">
+      <div style="font-weight:bold; width:78px; margin:0; padding:0;">Subject:</div>
+      <div style="margin:0; padding:0; flex:1 1 auto;"></div>
+    </div>
+    <div style="display:flex; margin:0; padding:0; line-height:1.4; align-items:flex-start;">
+      <div style="font-weight:bold; width:78px; margin:0; padding:0;">To:</div>
+      <div style="margin:0; padding:0; flex:1 1 auto;">jeevacation@gmail.com</div>
+    </div>
+    <div style="display:flex; margin:0; padding:0; line-height:1.4; align-items:flex-start;">
+      <div style="font-weight:bold; width:78px; margin:0; padding:0;">Date:</div>
+      <div style="margin:0; padding:0; flex:1 1 auto;">Monday, 17 January, 2011, 18:08</div>
+    </div>
+
+    <br>
+    <div style="margin: 0 0 18px 0;">
+      <p style="margin:0 0 12px 0;">shall I see the silverstone people in NY ?</p><br><br>
+      <p style="margin:0 0 12px 0;">Do you know the hedge fund people who own Asprey ?</p><br><br>
+      Lord Mandelson<br>
+      Chairman, Global Counsel LLP<br>
+      <span style="background:#000;color:#000;padding:2px 6px;display:inline-block;line-height:1;height:1em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><br>
+      <span style="background:#000;color:#000;padding:2px 6px;display:inline-block;line-height:1;height:1em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+    </div>
+  </div>
+
+</div>`;
+
+  // ── Element refs ──
+  const dropzone    = document.getElementById('dropzone');
+  const fileInput   = document.getElementById('file-input');
+  const filePill    = document.getElementById('file-pill');
+  const fpName      = document.getElementById('fp-name');
+  const fpRemove    = document.getElementById('fp-remove');
+  const convertBtn  = document.getElementById('convert-btn');
+  const progress    = document.getElementById('progress');
+  const actions     = document.getElementById('actions');
+  const downloadBtn = document.getElementById('download-btn');
+  const newBtn      = document.getElementById('new-btn');
+  const emptyState  = document.getElementById('empty-state');
+  const previewIframe = document.getElementById('preview-iframe');
+  const sourceView  = document.getElementById('source-view');
+  const sourcePre   = document.getElementById('source-pre');
+  const tabPreview  = document.getElementById('tab-preview');
+  const tabSource   = document.getElementById('tab-source');
+  const copyBtn     = document.getElementById('copy-btn');
+
+  let selectedFile = null;
+  let currentHtml  = null;
+  let activeTab    = 'preview';
+
+  // ── Tab switching ──
+  function showTab(tab) {
+    activeTab = tab;
+    tabPreview.classList.toggle('active', tab === 'preview');
+    tabSource.classList.toggle('active', tab === 'source');
+    if (!currentHtml) return;
+    previewIframe.classList.toggle('visible', tab === 'preview');
+    sourceView.classList.toggle('visible', tab === 'source');
+  }
+  tabPreview.addEventListener('click', () => showTab('preview'));
+  tabSource.addEventListener('click', () => showTab('source'));
+
+  // ── File selection ──
+  function selectFile(file) {
+    if (!file || file.type !== 'application/pdf') return;
+    selectedFile = file;
+    fpName.textContent = file.name;
+    dropzone.style.display = 'none';
+    filePill.classList.add('visible');
+    convertBtn.disabled = false;
+    downloadBtn.textContent = `⬇ Download ${file.name.replace('.pdf', '.html')}`;
+  }
+
+  function resetUpload() {
+    selectedFile = null;
+    fileInput.value = '';
+    dropzone.style.display = '';
+    filePill.classList.remove('visible');
+    progress.classList.remove('visible');
+    actions.classList.remove('visible');
+    convertBtn.disabled = true;
+    convertBtn.style.display = '';
+    // Clear output
+    currentHtml = null;
+    previewIframe.classList.remove('visible');
+    previewIframe.srcdoc = '';
+    sourceView.classList.remove('visible');
+    sourcePre.textContent = '';
+    emptyState.classList.remove('hidden');
+  }
+
+  fileInput.addEventListener('change', () => selectFile(fileInput.files[0]));
+  fpRemove.addEventListener('click', resetUpload);
+
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('drag-over');
+    selectFile(e.dataTransfer.files[0]);
+  });
+
+  // ── Conversion (demo sequence) ──
+  function setStep(id, state) {
+    const el = document.getElementById(id);
+    el.className = state;
+  }
+
+  convertBtn.addEventListener('click', () => {
+    if (!selectedFile) return;
+    filePill.classList.remove('visible');
+    convertBtn.style.display = 'none';
+    progress.classList.add('visible');
+
+    ['s1','s2','s3'].forEach(id => setStep(id, ''));
+    setStep('s1', 'active');
+
+    setTimeout(() => { setStep('s1', 'done'); setStep('s2', 'active'); }, 1200);
+    setTimeout(() => { setStep('s2', 'done'); setStep('s3', 'active'); }, 2800);
+    setTimeout(() => { setStep('s3', 'done'); }, 4200);
+
+    setTimeout(() => {
+      progress.classList.remove('visible');
+      actions.classList.add('visible');
+      renderOutput(SAMPLE_HTML);
+    }, 5000);
+  });
+
+  // ── Render output ──
+  function renderOutput(html) {
+    currentHtml = html;
+    emptyState.classList.add('hidden');
+    // Rendered preview in iframe
+    previewIframe.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:20px;}</style></head><body>${html}</body></html>`;
+    // Source view
+    sourcePre.textContent = html;
+    showTab(activeTab);
+  }
+
+  // ── Copy button ──
+  copyBtn.addEventListener('click', () => {
+    if (!currentHtml) return;
+    navigator.clipboard.writeText(currentHtml).then(() => {
+      copyBtn.textContent = 'Copied!';
+      copyBtn.classList.add('copied');
+      setTimeout(() => {
+        copyBtn.textContent = 'Copy HTML';
+        copyBtn.classList.remove('copied');
+      }, 2000);
+    });
+  });
+
+  // ── Download ──
+  downloadBtn.addEventListener('click', () => {
+    if (!currentHtml || !selectedFile) return;
+    const blob = new Blob([currentHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = selectedFile.name.replace('.pdf', '.html');
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  newBtn.addEventListener('click', resetUpload);
+</script>
+</body>
+</html>

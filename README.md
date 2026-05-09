@@ -75,6 +75,16 @@ The generated HTML uses inline styles throughout — no external stylesheet need
 
 ---
 
+## Limitations
+
+- **Scanned PDFs won't work** — Claude needs machine-readable text. Image-based PDFs will fail or produce garbled output.
+- **Flourish-only output** — the HTML targets the Flourish Text Annotator template and isn't directly usable elsewhere.
+- **AI accuracy** — unusual email formats, deeply nested threads, or edge cases not covered in `CONVENTIONS.md` may produce formatting errors.
+- **One file at a time** — no batch processing.
+- **Web app is a mockup** — the live site demonstrates the UI with sample data; the real API integration is the next build step.
+
+---
+
 ## Repository layout
 
 ```

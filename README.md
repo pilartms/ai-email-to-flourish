@@ -68,7 +68,10 @@ A 10-point checklist at the end of `CONVENTIONS.md` (and embedded in the plugin'
 
 The generated HTML uses inline styles throughout — no external stylesheet needed. Paste it directly into Flourish's Text Annotator HTML field.
 
-→ [View a live Flourish graphic built with this tool](https://public.flourish.studio/visualisation/28829016/)
+**Example input → output:**
+
+- Input: [EFTA01833959.pdf](https://www.justice.gov/epstein/files/DataSet%2010/EFTA01833959.pdf) (DOJ Epstein dataset)
+- Output: [View the live Flourish graphic](https://public.flourish.studio/visualisation/28829016/)
 
 ---
 

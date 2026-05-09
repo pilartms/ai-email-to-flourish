@@ -130,8 +130,14 @@ Only use a CSS horizontal rule if a visible horizontal line is present in the PD
 Reproduce `--- On [date], [SENDER] <[email]> wrote:` lines as plain text — **no bold** on date or sender:
 
 ```html
-<p style="margin:0 0 12px 0;">--- On [date], [SENDER] &lt;<span style="background:#000; color:#000; padding:2px 6px; display:inline-block; line-height:1; height:1em; box-sizing:border-box;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&gt; wrote:</p>
+<p style="margin:0 0 12px 0;">--- On [date], [SENDER] &lt;<span style="background:#000; color:#000; padding:2px 6px; display:inline-block; line-height:1; height:1em; box-sizing:border-box;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&gt; wrote:</p><br><br>
+<p style="margin:0 0 12px 0;">&gt; Quoted text here</p>
 ```
+
+Because Flourish renders `<p>` as inline, adjacent `<p>` tags flow onto the same line without an explicit break between them. Always add a break between consecutive `<p>` elements:
+
+- `<br>` — single line break (no visible gap between lines)
+- `<br><br>` — blank-line gap (use whenever the PDF shows an empty line between paragraphs, including between the transition line and the quoted text that follows it)
 
 Place it after the outer email's body and before the inner email's header block.
 
@@ -160,7 +166,8 @@ Save to `output/` using the same base filename as the PDF:
 - [ ] `<br><br>` before each signature block; signature lines use `<br>` not `<p>`
 - [ ] Outer `From:` name only when no bar; name + `< bar >` when bar visible in PDF
 - [ ] Inner `From:` wraps bar in `< >`
-- [ ] Transition line present if in PDF; no bold on date/sender
+- [ ] Transition line present if in PDF; no bold on date/sender; followed by `<br><br>` before quoted text
+- [ ] `<br>` or `<br><br>` between every pair of consecutive `<p>` elements (single break for adjacent lines; double break when the PDF shows a blank line between them)
 - [ ] Horizontal divider only if present in PDF
 - [ ] Confidentiality footer removed
 - [ ] No `<strong>` in body, transitions, or signatures

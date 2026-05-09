@@ -82,8 +82,14 @@ When the PDF includes a `--- On [date], [SENDER] <[email]> wrote:` line, reprodu
     style="background:#000; color:#000; padding:2px 6px; display:inline-block; line-height:1; height:1em; box-sizing:border-box;"
     >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span
   >&gt; wrote:
-</p>
+</p><br><br>
+<p style="margin:0 0 12px 0;">&gt; Quoted text here</p>
 ```
+
+Because Flourish renders `<p>` as inline, adjacent `<p>` tags flow onto the same line without an explicit break between them. Always add a break between consecutive `<p>` elements:
+
+- `<br>` — single line break (no visible gap between lines)
+- `<br><br>` — blank-line gap (use whenever the PDF shows an empty line between paragraphs, including between the transition line and the quoted text that follows it)
 
 Place it after the outer email's closing content and before the inner email's header block.
 
@@ -102,5 +108,6 @@ Do not use `<strong>` or `font-weight:bold` anywhere in the email body, transiti
 - [ ] Outer `From:` shows name only (no bar) when name is known
 - [ ] Inner `From:` wraps bar in `< >` when PDF shows angle-bracket format
 - [ ] `--- On ... wrote:` transition line included if present in PDF (no bold on date/sender)
+- [ ] `<br>` or `<br><br>` between every pair of consecutive `<p>` elements (single break for adjacent lines; double break when the PDF shows a blank line between them)
 - [ ] No horizontal divider between emails if not present in PDF
 - [ ] Epstein confidentiality footer removed

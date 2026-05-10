@@ -59,7 +59,7 @@ The skill applies a detailed set of rules defined in `CONVENTIONS.md`. Key ones:
 - **Redaction bars**: inline `<span>` with black background; wrapped in `< >` on inner `From:` fields and transition lines, name-only on outer `From:`
 - **Transition lines**: `--- On [date], [SENDER] <[bar]> wrote:` reproduced as plain text (no bold), followed by `<br><br>`
 - **Dividers**: horizontal rule only if visibly present in the PDF
-- **Footer removal**: Epstein confidentiality disclaimer always stripped
+- **Footer removal**: confidentiality disclaimer always stripped
 - **No bold in body**: `font-weight:bold` reserved for header field labels only
 
 A 10-point checklist at the end of `CONVENTIONS.md` (and embedded in the plugin's `SKILL.md`) must pass before saving.
